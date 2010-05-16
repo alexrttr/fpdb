@@ -326,6 +326,8 @@ class Game:
             stat.stat_locolor = stat_node.getAttribute("stat_locolor")
             stat.stat_hicolor = stat_node.getAttribute("stat_hicolor")
 
+            if self.stats.has_key(stat.stat_name):
+              log.error("stat " + stat.stat_name + " is defined multiple times. This is not supported.")
             self.stats[stat.stat_name] = stat
 
     def __str__(self):

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """Database.py
 
 Create and manage the database objects.
@@ -533,6 +534,12 @@ class Database:
     def get_last_hand(self):
         c = self.connection.cursor()
         c.execute(self.sql.query['get_last_hand'])
+        row = c.fetchone()
+        return row[0]
+    
+    def get_last_hand_of_table(self, table_name):
+        c = self.connection.cursor()
+        c.execute(self.sql.query['get_last_hand_of_table'], (table_name, ))
         row = c.fetchone()
         return row[0]
     

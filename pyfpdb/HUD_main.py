@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """Hud_main.py
 
@@ -90,6 +91,8 @@ class HUD_main(object):
             self.hud_dict = {}
             self.hud_params = self.config.get_hud_ui_parameters()
 
+            self.find_last_hand_of_running_tables()
+            
     #    a thread to read stdin
             gobject.threads_init()                       # this is required
             thread.start_new_thread(self.read_stdin, ()) # starts the thread
@@ -103,11 +106,34 @@ class HUD_main(object):
             self.main_window.add(self.vb)
             self.main_window.set_title("HUD Main Window")
             self.main_window.show_all()
+
         except:
             log.error( "*** Exception in HUD_main.init() *** " )
             for e in traceback.format_tb(sys.exc_info()[2]):
                 log.error(e)
+            log.error(repr(sys.exc_info()[1]))
 
+    def find_last_hand_of_running_tables(self):
+        db = Database.Database(self.config)
+        self.last_hand_of_running_tables = []
+        known_table_names = db.connection.execute("select distinct tableName from Hands").fetchall()
+        for listing in os.popen('xwininfo -root -tree').readlines():
+            mo = re.match('\s+([\dxabcdef]+) (.+):\s\(\"([a-zA-Z.]+)\".+  (\d+)x(\d+)\+\d+\+\d+  \+(\d+)\+(\d+)', listing)
+            if mo:
+                klass = mo.group(3)
+                if klass == "PokerStars.exe":
+                    title = re.sub('\"', '', mo.group(2))
+                    if title.find(" - ") != -1:
+                        table_name = title.split(" - ", 2)[0]
+                        if table_name != "PokerStars Lobby":
+                            for known_table_name, in known_table_names:
+                                if re.search("^" + known_table_name + " ", table_name):
+                                    log.info("Found table " + known_table_name)
+                                    last_hand = db.get_last_hand_of_table(known_table_name)
+                                    if last_hand:
+                                        self.last_hand_of_running_tables.append(last_hand)
+                                    else:
+                                        log.info("Didn't find hand for table " + known_table_name)
 
     def destroy(self, *args):             # call back for terminating the main eventloop
         log.info("Terminating normally.")
@@ -204,16 +230,20 @@ class HUD_main(object):
 #    need their own access to the database, but should open their own
 #    if it is required.
         self.db_connection = Database.Database(self.config)
-
+            
 #       get hero's screen names and player ids
         self.hero, self.hero_ids = {}, {}
         found = False
 
         while 1: # wait for a new hand number on stdin
-            new_hand_id = sys.stdin.readline()
+            if len(self.last_hand_of_running_tables) != 0:
+                new_hand_id = self.last_hand_of_running_tables.pop()
+            else:
+                new_hand_id = sys.stdin.readline()
+                new_hand_id = string.rstrip(new_hand_id)
+            
             t0 = time.time()
             t1 = t2 = t3 = t4 = t5 = t6 = t0
-            new_hand_id = string.rstrip(new_hand_id)
             log.debug("Received hand no %s" % new_hand_id)
             if new_hand_id == "":           # blank line means quit
                 self.destroy()

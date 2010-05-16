@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """Returns a dict of SQL statements used in fpdb.
 """
 #    Copyright 2008-2009, Ray E. Barker
@@ -1247,6 +1248,8 @@ class Sql:
                                              , maxSeats, knockout, rebuyOrAddon, speed, headsUp, shootout, matrix, sng)"""
 
         self.query['get_last_hand'] = "select max(id) from Hands"
+
+        self.query['get_last_hand_of_table'] = "select max(id) from Hands where tableName = %s"
 
         self.query['get_player_id'] = """
                 select Players.id AS player_id 
